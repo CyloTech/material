@@ -641,11 +641,12 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
         left        = tab.offsetLeft,
         canvasWidth = elements.canvas.clientWidth,
         totalWidth  = elements.paging.offsetWidth,
-        maxOffset   = totalWidth - canvasWidth;
-
+        maxOffset   = totalWidth - canvasWidth,
+        // Dirty hack because the tab widths aren't rounded
+        right   = (totalWidth - left - tab.offsetWidth < 5) ? 0 : totalWidth - left - tab.offsetWidth;
     // Changed to calculate from the right
     ctrl.offsetLeft = Math.max(ctrl.offsetLeft, fixOffset(maxOffset - left));
-    ctrl.offsetLeft = Math.min(ctrl.offsetLeft, fixOffset(totalWidth - left - tab.offsetWidth));
+    ctrl.offsetLeft = Math.min(ctrl.offsetLeft, fixOffset(right));
   }
 
   /**
