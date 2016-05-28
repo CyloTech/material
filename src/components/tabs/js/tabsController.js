@@ -204,7 +204,7 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
    */
   function handleOffsetChange (left) {
     var elements = getElements();
-    var newValue = ctrl.shouldCenterTabs ? '' : '-' + left + 'px';
+    var newValue = ctrl.shouldCenterTabs ? '' : '+' + left + 'px';
 
     angular.element(elements.paging).css($mdConstant.CSS.TRANSFORM, 'translate3d(' + newValue + ', 0, 0)');
     $scope.$broadcast('$mdTabsPaginationChanged');
@@ -318,13 +318,26 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
   function scroll (event) {
     if (!ctrl.shouldPaginate) return;
     event.preventDefault();
-    ctrl.offsetLeft = fixOffset(ctrl.offsetLeft - event.wheelDelta);
+    //ctrl.offsetLeft = fixOffset(ctrl.offsetLeft - event.wheelDelta);
   }
 
   /**
    * Slides the tabs over approximately one page forward.
    */
   function nextPage () {
+    var i, tab, elements = getElements();
+
+    for (i = 0; i < elements.tabs.length; i++) {
+      tab = elements.tabs[ i ];
+      if (tab.offsetLeft + tab.offsetWidth >= ctrl.offsetLeft) break;
+    }
+    ctrl.offsetLeft = fixOffset(tab.offsetLeft + tab.offsetWidth - elements.canvas.clientWidth);
+  }
+
+  /**
+   * Slides the tabs over approximately one page backward.
+   */
+  function previousPage () {
     var elements = getElements();
     var viewportWidth = elements.canvas.clientWidth,
         totalWidth    = viewportWidth + ctrl.offsetLeft,
@@ -334,19 +347,6 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
       if (tab.offsetLeft + tab.offsetWidth > totalWidth) break;
     }
     ctrl.offsetLeft = fixOffset(tab.offsetLeft);
-  }
-
-  /**
-   * Slides the tabs over approximately one page backward.
-   */
-  function previousPage () {
-    var i, tab, elements = getElements();
-
-    for (i = 0; i < elements.tabs.length; i++) {
-      tab = elements.tabs[ i ];
-      if (tab.offsetLeft + tab.offsetWidth >= ctrl.offsetLeft) break;
-    }
-    ctrl.offsetLeft = fixOffset(tab.offsetLeft + tab.offsetWidth - elements.canvas.clientWidth);
   }
 
   /**
@@ -460,7 +460,10 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
    * @returns {boolean}
    */
   function canPageBack () {
-    return ctrl.offsetLeft > 0;
+    var elements = getElements();
+    var lastTab = elements.tabs[ elements.tabs.length - 1 ];
+    return lastTab && lastTab.offsetLeft + lastTab.offsetWidth > elements.canvas.clientWidth +
+        ctrl.offsetLeft;
   }
 
   /**
@@ -468,10 +471,7 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
    * @returns {*|boolean}
    */
   function canPageForward () {
-    var elements = getElements();
-    var lastTab = elements.tabs[ elements.tabs.length - 1 ];
-    return lastTab && lastTab.offsetLeft + lastTab.offsetWidth > elements.canvas.clientWidth +
-        ctrl.offsetLeft;
+    return ctrl.offsetLeft > 0;
   }
 
   /**
@@ -639,9 +639,13 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
     if (ctrl.shouldCenterTabs) return;
     var tab         = elements.tabs[ index ],
         left        = tab.offsetLeft,
-        right       = tab.offsetWidth + left;
-    ctrl.offsetLeft = Math.max(ctrl.offsetLeft, fixOffset(right - elements.canvas.clientWidth + 32 * 2));
-    ctrl.offsetLeft = Math.min(ctrl.offsetLeft, fixOffset(left));
+        canvasWidth = elements.canvas.clientWidth,
+        totalWidth  = elements.paging.offsetWidth,
+        maxOffset   = totalWidth - canvasWidth;
+
+    // Changed to calculate from the right
+    ctrl.offsetLeft = Math.max(ctrl.offsetLeft, fixOffset(maxOffset - left));
+    ctrl.offsetLeft = Math.min(ctrl.offsetLeft, fixOffset(totalWidth - left - tab.offsetWidth));
   }
 
   /**
