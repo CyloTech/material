@@ -49,7 +49,7 @@ module.exports = {
   ],
   cssIEPaths : ['src/**/ie_fixes.css'],
   paths: 'src/{components, services}/**',
-  outputDir: '../cylo-ui/app/bower_components/angular-material/',
+  outputDir: '../bower-material/',
   demoFolder: 'demo-partials'
 };
 
