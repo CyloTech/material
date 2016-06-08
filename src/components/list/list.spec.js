@@ -138,14 +138,40 @@ describe('mdListItem directive', function() {
     var buttonWrap = listItem.children().eq(0);
     expect(listItem).toHaveClass('_md-button-wrap');
 
-    // The button wrap should contain the button executor, the inner content, flex filler and the
+    // The button wrap should contain the button executor, the inner content and the
     // secondary item container as children.
-    expect(buttonWrap.children().length).toBe(4);
+    expect(buttonWrap.children().length).toBe(3);
 
     var buttonExecutor = buttonWrap.children()[0];
 
     // The list item should forward the click and disabled attributes.
     expect(buttonExecutor.hasAttribute('ng-click')).toBe(true);
+    expect(buttonExecutor.hasAttribute('ng-disabled')).toBe(true);
+
+    var innerContent = buttonWrap.children()[1];
+
+    expect(innerContent.nodeName).toBe('DIV');
+    expect(innerContent.firstElementChild.nodeName).toBe('P');
+  });
+
+  it('creates buttons when used with ng-dblclick', function() {
+    var listItem = setup(
+      '<md-list-item ng-dblclick="sayHello()" ng-disabled="true">' +
+        '<p>Hello world</p>' +
+      '</md-list-item>');
+
+    // List items, which are clickable always contain a button wrap at the top level.
+    var buttonWrap = listItem.children().eq(0);
+    expect(listItem).toHaveClass('_md-button-wrap');
+
+    // The button wrap should contain the button executor, the inner content and the
+    // secondary item container as children.
+    expect(buttonWrap.children().length).toBe(3);
+
+    var buttonExecutor = buttonWrap.children()[0];
+
+    // The list item should forward the click and disabled attributes.
+    expect(buttonExecutor.hasAttribute('ng-dblclick')).toBe(true);
     expect(buttonExecutor.hasAttribute('ng-disabled')).toBe(true);
 
     var innerContent = buttonWrap.children()[1];
@@ -164,9 +190,9 @@ describe('mdListItem directive', function() {
     var buttonWrap = listItem.children().eq(0);
     expect(listItem).toHaveClass('_md-button-wrap');
 
-    // The button wrap should contain the button executor, the inner content, flex filler and the
+    // The button wrap should contain the button executor, the inner content and the
     // secondary item container as children.
-    expect(buttonWrap.children().length).toBe(4);
+    expect(buttonWrap.children().length).toBe(3);
 
     var buttonExecutor = buttonWrap.children()[0];
 
@@ -189,9 +215,9 @@ describe('mdListItem directive', function() {
     var buttonWrap = listItem.children().eq(0);
     expect(listItem).toHaveClass('_md-button-wrap');
 
-    // The button wrap should contain the button executor, the inner content, flex filler and the
+    // The button wrap should contain the button executor, the inner content and the
     // secondary item container as children.
-    expect(buttonWrap.children().length).toBe(4);
+    expect(buttonWrap.children().length).toBe(3);
 
     var buttonExecutor = buttonWrap.children()[0];
 
@@ -230,11 +256,11 @@ describe('mdListItem directive', function() {
 
     expect(listItem).toHaveClass('_md-button-wrap');
 
-    // It should contain three elements, the button overlay, inner content, flex filler
+    // It should contain three elements, the button overlay, inner content
     // and the secondary container.
-    expect(firstChild.children().length).toBe(4);
+    expect(firstChild.children().length).toBe(3);
 
-    var secondaryContainer = firstChild.children().eq(3);
+    var secondaryContainer = firstChild.children().eq(2);
     expect(secondaryContainer).toHaveClass('_md-secondary-container');
 
     // The secondary container should contain the md-icon,
@@ -256,11 +282,11 @@ describe('mdListItem directive', function() {
 
     expect(listItem).toHaveClass('_md-button-wrap');
 
-    // It should contain three elements, the button overlay, inner content, flex filler
+    // It should contain three elements, the button overlay, inner content,
     // and the secondary container.
-    expect(firstChild.children().length).toBe(4);
+    expect(firstChild.children().length).toBe(3);
 
-    var secondaryContainer = firstChild.children().eq(3);
+    var secondaryContainer = firstChild.children().eq(2);
     expect(secondaryContainer).toHaveClass('_md-secondary-container');
 
     // The secondary container should hold the two secondary items.
@@ -299,6 +325,61 @@ describe('mdListItem directive', function() {
 
     expect(button[0].hasAttribute('ng-click')).toBeTruthy();
     expect(button[0].hasAttribute('ng-disabled')).toBeTruthy();
+  });
+
+  describe('with a md-menu', function() {
+    it('should forward click events on the md-menu trigger button', function() {
+      var template =
+        '<md-list-item>' +
+        '<md-menu>' +
+        '<md-button ng-click="openMenu()"></md-button>' +
+        '</md-menu>' +
+        '</md-list-item>';
+
+      var listItem = setup(template);
+      var cntr = listItem[0].querySelector('div');
+      var openMenu = jasmine.createSpy('openMenu');
+
+      $rootScope.openMenu = openMenu;
+
+      if (cntr && cntr.click) {
+        cntr.click();
+        expect(openMenu).toHaveBeenCalled();
+      }
+
+    });
+
+    it('should detect the menu position mode when md-menu is aligned at right', function() {
+      var template =
+        '<md-list-item>' +
+          '<span>Menu should be aligned right</span>' +
+          '<md-menu>' +
+            '<md-button ng-click="openMenu()"></md-button>' +
+          '</md-menu>' +
+        '</md-list-item>';
+
+      var listItem = setup(template);
+
+      var mdMenu = listItem.find('md-menu');
+
+      expect(mdMenu.attr('md-position-mode')).toBe('right target');
+    });
+
+    it('should detect the menu position mode when md-menu is aligned at left', function() {
+      var template =
+        '<md-list-item>' +
+          '<md-menu>' +
+            '<md-button ng-click="openMenu()"></md-button>' +
+          '</md-menu>' +
+          '<span>Menu should be aligned left</span>' +
+        '</md-list-item>';
+
+      var listItem = setup(template);
+
+      var mdMenu = listItem.find('md-menu');
+
+      expect(mdMenu.attr('md-position-mode')).toBe('left target');
+    });
   });
 
   describe('with a clickable item', function() {

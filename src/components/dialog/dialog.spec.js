@@ -579,6 +579,7 @@ describe('$mdDialog', function() {
           .title('Title')
           .textContent('Hello world')
           .placeholder('placeholder text')
+          .initialValue('initial value')
           .theme('some-theme')
           .css('someClass anotherClass')
           .ok('Next')
@@ -604,6 +605,7 @@ describe('$mdDialog', function() {
       expect(title.text()).toBe('Title');
       expect(contentBody.textContent).toBe('Hello world');
       expect(inputElement[0].placeholder).toBe('placeholder text');
+      expect(inputElement.val()).toBe('initial value');
       expect(buttons.length).toBe(2);
       expect(buttons.eq(0).text()).toBe('Next');
       expect(theme).toBe('some-theme');
@@ -634,11 +636,47 @@ describe('$mdDialog', function() {
           .parent(parent)
           .textContent('Hello world')
           .placeholder('placeholder text')
-      )
+      );
 
       runAnimation(parent.find('md-dialog'));
 
       expect($document.activeElement).toBe(parent[0].querySelector('input'));
+    }));
+
+    it('should cancel the first dialog when opening a second', inject(function($mdDialog, $rootScope, $document) {
+      var firstParent = angular.element('<div>');
+      var secondParent = angular.element('<div>');
+      var isCancelled = false;
+
+      $mdDialog.show(
+        $mdDialog
+          .prompt()
+          .parent(firstParent)
+          .textContent('Hello world')
+          .placeholder('placeholder text')
+      ).catch(function() {
+        isCancelled = true;
+      });
+
+      $rootScope.$apply();
+      runAnimation();
+
+      expect(firstParent.find('md-dialog').length).toBe(1);
+
+      $mdDialog.show(
+        $mdDialog
+          .prompt()
+          .parent(secondParent)
+          .textContent('Hello world')
+          .placeholder('placeholder text')
+      );
+
+      $rootScope.$apply();
+      runAnimation();
+
+      expect(firstParent.find('md-dialog').length).toBe(0);
+      expect(secondParent.find('md-dialog').length).toBe(1);
+      expect(isCancelled).toBe(true);
     }));
 
     it('should submit after ENTER key', inject(function($mdDialog, $rootScope, $timeout, $mdConstant) {
