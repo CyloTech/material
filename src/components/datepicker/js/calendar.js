@@ -2,16 +2,27 @@
   'use strict';
 
   /**
-   * @ngdoc module
-   * @name material.components.calendar
-   * @description Calendar
+   * @ngdoc directive
+   * @name mdCalendar
+   * @module material.components.datepicker
+   *
+   * @param {Date} ng-model The component's model. Should be a Date object.
+   * @param {Date=} md-min-date Expression representing the minimum date.
+   * @param {Date=} md-max-date Expression representing the maximum date.
+   * @param {(function(Date): boolean)=} md-date-filter Function expecting a date and returning a boolean whether it can be selected or not.
+   *
+   * @description
+   * `<md-calendar>` is a component that renders a calendar that can be used to select a date.
+   * It is a part of the `<md-datepicker` pane, however it can also be used on it's own.
+   *
+   * @usage
+   *
+   * <hljs lang="html">
+   *   <md-calendar ng-model="birthday"></md-calendar>
+   * </hljs>
    */
-  angular.module('material.components.datepicker', [
-    'material.core',
-    'material.components.icon',
-    'material.components.virtualRepeat'
-  ]).directive('mdCalendar', calendarDirective);
-
+  angular.module('material.components.datepicker')
+    .directive('mdCalendar', calendarDirective);
 
   // POST RELEASE
   // TODO(jelbourn): Mac Cmd + left / right == Home / End
@@ -46,7 +57,8 @@
       scope: {
         minDate: '=mdMinDate',
         maxDate: '=mdMaxDate',
-        dateFilter: '=mdDateFilter'
+        dateFilter: '=mdDateFilter',
+        _currentView: '@mdCurrentView'
       },
       require: ['ngModel', 'mdCalendar'],
       controller: CalendarCtrl,
@@ -105,8 +117,13 @@
     /** @type {!angular.NgModelController} */
     this.ngModelCtrl = null;
 
-    /** @type {String} The currently visible calendar view. */
-    this.currentView = 'month';
+    /**
+     * The currently visible calendar view. Note the prefix on the scope value,
+     * which is necessary, because the datepicker seems to reset the real one value if the
+     * calendar is open, but the value on the datepicker's scope is empty.
+     * @type {String}
+     */
+    this.currentView = this._currentView || 'month';
 
     /** @type {String} Class applied to the selected date cell. */
     this.SELECTED_DATE_CLASS = 'md-calendar-selected-date';
@@ -375,5 +392,23 @@
       date.getMonth(),
       date.getDate()
     ].join('-');
+  };
+
+  /**
+   * Util to trigger an extra digest on a parent scope, in order to to ensure that
+   * any child virtual repeaters have updated. This is necessary, because the virtual
+   * repeater doesn't update the $index the first time around since the content isn't
+   * in place yet. The case, in which this is an issue, is when the repeater has less
+   * than a page of content (e.g. a month or year view has a min or max date).
+   */
+  CalendarCtrl.prototype.updateVirtualRepeat = function() {
+    var scope = this.$scope;
+    var virtualRepeatResizeListener = scope.$on('$md-resize-enable', function() {
+      if (!scope.$$phase) {
+        scope.$apply();
+      }
+
+      virtualRepeatResizeListener();
+    });
   };
 })();

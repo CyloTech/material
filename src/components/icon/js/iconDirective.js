@@ -185,8 +185,13 @@ function mdIconDirective($mdIcon, $mdTheming, $mdAria, $sce) {
    */
   function postLink(scope, element, attr) {
     $mdTheming(element);
+    var lastFontIcon = attr.mdFontIcon;
+    var lastFontSet = $mdIcon.fontSet(attr.mdFontSet);
 
     prepareForFontIcon();
+
+    attr.$observe('mdFontIcon', fontIconChanged);
+    attr.$observe('mdFontSet', fontIconChanged);
 
     // Keep track of the content of the svg src so we can compare against it later to see if the
     // attribute is static (and thus safe).
@@ -216,20 +221,13 @@ function mdIconDirective($mdIcon, $mdTheming, $mdAria, $sce) {
     if (attrName) {
       // Use either pre-configured SVG or URL source, respectively.
       attr.$observe(attrName, function(attrVal) {
-
-        // If using svg-src and the value is static (i.e., is exactly equal to the compile-time
-        // `md-svg-src` value), then it is implicitly trusted.
-        if (!isInlineSvg(attrVal) && attrVal === originalSvgSrc) {
-          attrVal = $sce.trustAsUrl(attrVal);
-        }
-
         element.empty();
         if (attrVal) {
           $mdIcon(attrVal)
             .then(function(svg) {
-              element.empty();
-              element.append(svg);
-            });
+            element.empty();
+            element.append(svg);
+          });
         }
 
       });
@@ -251,18 +249,29 @@ function mdIconDirective($mdIcon, $mdTheming, $mdAria, $sce) {
         if (attr.mdFontIcon) {
           element.addClass('md-font ' + attr.mdFontIcon);
         }
-        element.addClass($mdIcon.fontSet(attr.mdFontSet));
+
+        element.addClass(lastFontSet);
       }
     }
-  }
 
-  /**
-   * Gets whether the given svg src is an inline ("data:" style) SVG.
-   * @param {string} svgSrc The svg src.
-   * @returns {boolean} Whether the src is an inline SVG.
-   */
-  function isInlineSvg(svgSrc) {
-    var dataUrlRegex = /^data:image\/svg\+xml[\s*;\w\-\=]*?(base64)?,(.*)$/i;
-    return dataUrlRegex.test(svgSrc);
+    function fontIconChanged() {
+      if (!attr.mdSvgIcon && !attr.mdSvgSrc) {
+        if (attr.mdFontIcon) {
+          element.removeClass(lastFontIcon);
+          element.addClass(attr.mdFontIcon);
+
+          lastFontIcon = attr.mdFontIcon;
+        }
+
+        var fontSet = $mdIcon.fontSet(attr.mdFontSet);
+
+        if (lastFontSet !== fontSet) {
+          element.removeClass(lastFontSet);
+          element.addClass(fontSet);
+
+          lastFontSet = fontSet;
+        }
+      }
+    }
   }
 }

@@ -19,7 +19,7 @@ angular
 /**
  * @ngInject
  */
-function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $interpolate, $log, $rootElement, $window) {
+function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $interpolate, $log, $rootElement, $window, $$rAF) {
   // Setup some core variables for the processTemplate method
   var startSymbol = $interpolate.startSymbol(),
     endSymbol = $interpolate.endSymbol(),
@@ -43,6 +43,20 @@ function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $in
     return hasValue;
   };
 
+  function validateCssValue(value) {
+    return !value       ? '0'   :
+      hasPx(value) || hasPercent(value) ? value : value + 'px';
+  }
+
+  function hasPx(value) {
+    return String(value).indexOf('px') > -1;
+  }
+
+  function hasPercent(value) {
+    return String(value).indexOf('%') > -1;
+
+  }
+
   var $mdUtil = {
     dom: {},
     now: window.performance ?
@@ -61,22 +75,29 @@ function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $in
       if ( arguments.length == 0 ) return ltr ? 'ltr' : 'rtl';
 
       // If mutator
+      var elem = angular.element(element);
+
       if ( ltr && angular.isDefined(lValue)) {
-        angular.element(element).css(property, validate(lValue));
+        elem.css(property, validateCssValue(lValue));
       }
       else if ( !ltr && angular.isDefined(rValue)) {
-        angular.element(element).css(property, validate(rValue) );
+        elem.css(property, validateCssValue(rValue) );
       }
+    },
 
-        // Internal utils
+    bidiProperty: function (element, lProperty, rProperty, value) {
+      var ltr = !($document[0].dir == 'rtl' || $document[0].body.dir == 'rtl');
 
-        function validate(value) {
-          return !value       ? '0'   :
-                 hasPx(value) ? value : value + 'px';
-        }
-        function hasPx(value) {
-          return String(value).indexOf('px') > -1;
-        }
+      var elem = angular.element(element);
+
+      if ( ltr && angular.isDefined(lProperty)) {
+        elem.css(lProperty, validateCssValue(value));
+        elem.css(rProperty, '');
+      }
+      else if ( !ltr && angular.isDefined(rProperty)) {
+        elem.css(rProperty, validateCssValue(value) );
+        elem.css(lProperty, '');
+      }
     },
 
     clientRect: function(element, offsetParent, isOffsetRect) {
@@ -163,9 +184,9 @@ function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $in
           items.length && angular.forEach(items, function(it) {
             it = angular.element(it);
 
-            // Check the element for the _md-autofocus class to ensure any associated expression
+            // Check the element for the md-autofocus class to ensure any associated expression
             // evaluated to true.
-            var isFocusable = it.hasClass('_md-autofocus');
+            var isFocusable = it.hasClass('md-autofocus');
             if (isFocusable) elFound = it;
           });
         }
@@ -178,8 +199,11 @@ function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $in
      * @param element Unused
      * @param {!Element|!angular.JQLite} parent Element to disable scrolling within.
      *   Defaults to body if none supplied.
+     * @param options Object of options to modify functionality
+     *   - disableScrollMask Boolean of whether or not to create a scroll mask element or
+     *     use the passed parent element.
      */
-    disableScrollAround: function(element, parent) {
+    disableScrollAround: function(element, parent, options) {
       $mdUtil.disableScrollAround._count = $mdUtil.disableScrollAround._count || 0;
       ++$mdUtil.disableScrollAround._count;
       if ($mdUtil.disableScrollAround._enableScrolling) return $mdUtil.disableScrollAround._enableScrolling;
@@ -197,12 +221,18 @@ function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $in
 
       // Creates a virtual scrolling mask to absorb touchmove, keyboard, scrollbar clicking, and wheel events
       function disableElementScroll(element) {
-        element = angular.element(element || body)[0];
-        var scrollMask = angular.element(
-          '<div class="md-scroll-mask">' +
-          '  <div class="md-scroll-mask-bar"></div>' +
-          '</div>');
-        element.appendChild(scrollMask[0]);
+        element = angular.element(element || body);
+        var scrollMask;
+        if (options && options.disableScrollMask) {
+          scrollMask = element;
+        } else {
+          element = element[0];
+          scrollMask = angular.element(
+            '<div class="md-scroll-mask">' +
+            '  <div class="md-scroll-mask-bar"></div>' +
+            '</div>');
+          element.appendChild(scrollMask[0]);
+        }
 
         scrollMask.on('wheel', preventDefault);
         scrollMask.on('touchmove', preventDefault);
@@ -219,8 +249,7 @@ function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $in
         }
       }
 
-      // Converts the body to a position fixed block and translate it to the proper scroll
-      // position
+      // Converts the body to a position fixed block and translate it to the proper scroll position
       function disableBodyScroll() {
         var htmlNode = body.parentNode;
         var restoreHtmlStyle = htmlNode.style.cssText || '';
@@ -686,19 +715,19 @@ function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $in
       var stickyProps = ['sticky', '-webkit-sticky'];
       for (var i = 0; i < stickyProps.length; ++i) {
         testEl.css({
-          position: stickyProps[i], 
-          top: 0, 
+          position: stickyProps[i],
+          top: 0,
           'z-index': 2
         });
-        
+
         if (testEl.css('position') == stickyProps[i]) {
           stickyProp = stickyProps[i];
           break;
         }
       }
-      
+
       testEl.remove();
-      
+
       return stickyProp;
     },
 
@@ -715,7 +744,66 @@ function UtilFactory($document, $timeout, $compile, $rootScope, $$mdAnimate, $in
       return value === '' || !!value && (negatedCheck === false || value !== 'false' && value !== '0');
     },
 
-    hasComputedStyle: hasComputedStyle
+    hasComputedStyle: hasComputedStyle,
+
+    /**
+     * Returns true if the parent form of the element has been submitted.
+     *
+     * @param element An Angular or HTML5 element.
+     *
+     * @returns {boolean}
+     */
+    isParentFormSubmitted: function(element) {
+      var parent = $mdUtil.getClosest(element, 'form');
+      var form = parent ? angular.element(parent).controller('form') : null;
+
+      return form ? form.$submitted : false;
+    },
+
+    /**
+     * Animate the requested element's scrollTop to the requested scrollPosition with basic easing.
+     *
+     * @param element The element to scroll.
+     * @param scrollEnd The new/final scroll position.
+     */
+    animateScrollTo: function(element, scrollEnd) {
+      var scrollStart = element.scrollTop;
+      var scrollChange = scrollEnd - scrollStart;
+      var scrollingDown = scrollStart < scrollEnd;
+      var startTime = $mdUtil.now();
+
+      $$rAF(scrollChunk);
+
+      function scrollChunk() {
+        var newPosition = calculateNewPosition();
+        
+        element.scrollTop = newPosition;
+        
+        if (scrollingDown ? newPosition < scrollEnd : newPosition > scrollEnd) {
+          $$rAF(scrollChunk);
+        }
+      }
+      
+      function calculateNewPosition() {
+        var duration = 1000;
+        var currentTime = $mdUtil.now() - startTime;
+        
+        return ease(currentTime, scrollStart, scrollChange, duration);
+      }
+
+      function ease(currentTime, start, change, duration) {
+        // If the duration has passed (which can occur if our app loses focus due to $$rAF), jump
+        // straight to the proper position
+        if (currentTime > duration) {
+          return start + change;
+        }
+        
+        var ts = (currentTime /= duration) * currentTime;
+        var tc = ts * currentTime;
+
+        return start + change * (-2 * tc + 3 * ts);
+      }
+    }
   };
 
 
@@ -748,4 +836,3 @@ angular.element.prototype.blur = angular.element.prototype.blur || function() {
     }
     return this;
   };
-

@@ -60,7 +60,7 @@ describe('$mdDialog', function() {
           var mdDialog = mdContainer.find('md-dialog');
           var mdContent = mdDialog.find('md-dialog-content');
           var title = mdContent.find('h2');
-          var contentBody = mdContent[0].querySelector('._md-dialog-content-body');
+          var contentBody = mdContent[0].querySelector('.md-dialog-content-body');
           var buttons = parent.find('md-button');
           var css = mdDialog.attr('class').split(' ');
 
@@ -101,7 +101,7 @@ describe('$mdDialog', function() {
       var mdDialog = mdContainer.find('md-dialog');
       var mdContent = mdDialog.find('md-dialog-content');
       var title = mdContent.find('h2');
-      var contentBody = mdContent[0].querySelector('._md-dialog-content-body');
+      var contentBody = mdContent[0].querySelector('.md-dialog-content-body');
       var buttons = parent.find('md-button');
       var theme = mdDialog.attr('md-theme');
       var css = mdDialog.attr('class').split(' ');
@@ -123,6 +123,49 @@ describe('$mdDialog', function() {
       expect(resolved).toBe(true);
     }));
 
+    it('should normally use the default theme', inject(function($animate, $rootScope, $mdDialog, $compile) {
+      var dialogParent = angular.element('<div>');
+
+      $mdDialog.show(
+        $mdDialog
+          .alert()
+          .parent(dialogParent)
+          .title("Title")
+          .textContent("Themed Dialog")
+          .ok('Close')
+      );
+
+      $rootScope.$apply();
+      runAnimation();
+
+      var mdContainer = angular.element(dialogParent[0].querySelector('.md-dialog-container'));
+      var mdDialog = mdContainer.find('md-dialog');
+
+      expect(mdDialog.attr('md-theme')).toBe('default');
+    }));
+
+    it('should apply the specified theme', inject(function($animate, $rootScope, $mdDialog, $compile) {
+      var dialogParent = angular.element('<div>');
+
+      $mdDialog.show(
+        $mdDialog
+          .alert()
+          .parent(dialogParent)
+          .title("Title")
+          .theme('myTheme')
+          .textContent("Themed Dialog")
+          .ok('Close')
+      );
+
+      $rootScope.$apply();
+      runAnimation();
+
+      var mdContainer = angular.element(dialogParent[0].querySelector('.md-dialog-container'));
+      var mdDialog = mdContainer.find('md-dialog');
+
+      expect(mdDialog.attr('md-theme')).toBe('myTheme');
+    }));
+
     it('should focus `md-dialog-content` on open', inject(function($mdDialog, $rootScope, $document) {
       jasmine.mockElementFocus(this);
 
@@ -142,6 +185,30 @@ describe('$mdDialog', function() {
       runAnimation(parent.find('md-dialog'));
 
       expect($document.activeElement).toBe(parent[0].querySelector('md-dialog-content'));
+    }));
+
+    it('should warn if the template contains a ng-cloak', inject(function($mdDialog, $rootScope, $document, $log) {
+      var parent = angular.element('<div>');
+
+      // Enable spy on $log.warn
+      spyOn($log, 'warn');
+
+      $mdDialog.show(
+        $mdDialog.alert({
+          template:
+            '<md-dialog ng-cloak>' +
+              '<md-dialog-content>' +
+                '<p>Muppets are the best</p>' +
+              '</md-dialog-content>' +
+            '</md-dialog>',
+          parent: parent
+        })
+      );
+
+      runAnimation(parent.find('md-dialog'));
+
+      // The $mdDialog should throw a warning about the `ng-cloak`.
+      expect($log.warn).toHaveBeenCalled();
     }));
 
     it('should use the prefixed id from `md-dialog` for `md-dialog-content`', inject(function ($mdDialog, $rootScope, $document) {
@@ -209,7 +276,7 @@ describe('$mdDialog', function() {
 
       var dialog = parent.find('md-dialog');
       var content = parent[0].querySelector('md-dialog-content');
-      
+
       expect(content.id).toMatch(/dialogContent_[0-9]+/g);
     }));
 
@@ -298,7 +365,7 @@ describe('$mdDialog', function() {
       var container = angular.element(parent[0].querySelector('.md-dialog-container'));
       var dialog = parent.find('md-dialog');
       var title = parent.find('h2');
-      var contentBody = parent[0].querySelector('._md-dialog-content-body');
+      var contentBody = parent[0].querySelector('.md-dialog-content-body');
       var buttons = parent.find('md-button');
 
       expect(dialog.attr('role')).toBe('dialog');
@@ -351,7 +418,7 @@ describe('$mdDialog', function() {
 
       runAnimation();
 
-      var contentBody = parent[0].querySelector('._md-dialog-content-body');
+      var contentBody = parent[0].querySelector('.md-dialog-content-body');
 
       expect(contentBody.textContent).toBe('<div class="mine">Choose</div>');
     }));
@@ -372,7 +439,7 @@ describe('$mdDialog', function() {
       runAnimation();
 
       var container = angular.element(parent[0].querySelector('.md-dialog-container'));
-      var contentBody = container[0].querySelector('._md-dialog-content-body');
+      var contentBody = container[0].querySelector('.md-dialog-content-body');
 
       expect(contentBody.textContent).toBe('Choose breakfast');
     }));
@@ -393,7 +460,7 @@ describe('$mdDialog', function() {
       runAnimation();
 
       var container = angular.element(parent[0].querySelector('.md-dialog-container'));
-      var contentBody = container[0].querySelector('._md-dialog-content-body');
+      var contentBody = container[0].querySelector('.md-dialog-content-body');
 
       expect(contentBody.textContent).toBe('{{1 + 1}}');
     }));
@@ -596,7 +663,7 @@ describe('$mdDialog', function() {
       var mdDialog = mdContainer.find('md-dialog');
       var mdContent = mdDialog.find('md-dialog-content');
       var title = mdContent.find('h2');
-      var contentBody = mdContent[0].querySelector('._md-dialog-content-body');
+      var contentBody = mdContent[0].querySelector('.md-dialog-content-body');
       var inputElement = mdContent.find('input');
       var buttons = parent.find('md-button');
       var theme = mdDialog.attr('md-theme');
@@ -911,6 +978,31 @@ describe('$mdDialog', function() {
 
       expect(parent.find('md-dialog').length).toBe(0);
     }));
+
+    it('should close on escape before the animation started',
+      inject(function($mdDialog, $rootScope, $rootElement, $timeout, $animate, $mdConstant) {
+        var parent = angular.element('<div>');
+
+        $mdDialog.show({
+          template: '<md-dialog></md-dialog>',
+          parent: parent,
+          escapeToClose: true
+        });
+
+        $rootScope.$apply();
+
+        expect(parent.find('md-dialog').length).toBe(1);
+
+        parent.triggerHandler({
+          type: 'keydown',
+          keyCode: $mdConstant.KEY_CODE.ESCAPE
+        });
+        $timeout.flush();
+
+        runAnimation();
+
+        expect(parent.find('md-dialog').length).toBe(0);
+      }));
 
     it('should escapeToClose == false', inject(function($mdDialog, $rootScope, $rootElement, $timeout, $animate, $mdConstant) {
       var parent = angular.element('<div>');
@@ -1374,7 +1466,7 @@ describe('$mdDialog', function() {
       $rootScope.$apply();
 
       // It should add two focus traps to the document around the dialog content.
-      var focusTraps = parent.querySelectorAll('._md-dialog-focus-trap');
+      var focusTraps = parent.querySelectorAll('.md-dialog-focus-trap');
       expect(focusTraps.length).toBe(2);
 
       var topTrap = focusTraps[0];
@@ -1399,7 +1491,7 @@ describe('$mdDialog', function() {
       runAnimation();
 
       // All of the focus traps should be removed when the dialog is closed.
-      focusTraps = document.querySelectorAll('._md-dialog-focus-trap');
+      focusTraps = document.querySelectorAll('.md-dialog-focus-trap');
       expect(focusTraps.length).toBe(0);
 
       // Clean up our modifications to the DOM.
@@ -1457,7 +1549,7 @@ describe('$mdDialog with custom interpolation symbols', function() {
     var mdDialog = mdContainer.find('md-dialog');
     var mdContent = mdDialog.find('md-dialog-content');
     var title = mdContent.find('h2');
-    var contentBody = mdContent[0].querySelector('._md-dialog-content-body');
+    var contentBody = mdContent[0].querySelector('.md-dialog-content-body');
     var mdActions = angular.element(mdDialog[0].querySelector('md-dialog-actions'));
     var buttons = mdActions.find('md-button');
 
@@ -1484,7 +1576,7 @@ describe('$mdDialog with custom interpolation symbols', function() {
     var mdDialog = mdContainer.find('md-dialog');
     var mdContent = mdDialog.find('md-dialog-content');
     var title = mdContent.find('h2');
-    var contentBody = mdContent[0].querySelector('._md-dialog-content-body');
+    var contentBody = mdContent[0].querySelector('.md-dialog-content-body');
     var mdActions = angular.element(mdDialog[0].querySelector('md-dialog-actions'));
     var buttons = mdActions.find('md-button');
 
