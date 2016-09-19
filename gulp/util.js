@@ -84,13 +84,15 @@ function autoprefix () {
   ]});
 }
 
-function minifyCss() {
-  return nano({
+function minifyCss(extraOptions) {
+  var options = {
     autoprefixer: false,
     reduceTransforms: false,
     svgo: false,
     safe: true
-  });
+  };
+
+  return nano(_.assign(options, extraOptions));
 }
 
 function buildModule(module, opts) {
@@ -122,9 +124,12 @@ function buildModule(module, opts) {
 
   function splitStream (stream) {
     var js = series(stream, themeBuildStream())
-        .pipe(filter('*.js'))
+        .pipe(filter('**/*.js'))
         .pipe(concat('core.js'));
-    var css = stream.pipe(filter('*.css'));
+
+    var css = stream
+      .pipe(filter(['**/*.css', '!**/ie_fixes.css']))
+
     return series(js, css);
   }
 
@@ -226,6 +231,8 @@ function themeBuildStream() {
       .pipe(utils.hoistScssVariables())
       .pipe(sass())
       .pipe(dedupeCss())
+      // The PostCSS orderedValues plugin modifies the theme color expressions.
+      .pipe(minifyCss({ orderedValues: false }))
       .pipe(utils.cssToNgConstant('material.core', '$MD_THEME_CSS'));
 }
 

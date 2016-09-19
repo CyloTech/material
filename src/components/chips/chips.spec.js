@@ -202,6 +202,112 @@ describe('<md-chips>', function() {
         expect(scope.selectChip).toHaveBeenCalled();
         expect(scope.selectChip.calls.mostRecent().args[0]).toBe('Grape');
       });
+
+      describe('when adding chips on blur', function() {
+
+        it('should append a new chip for the remaining text', function() {
+          var element = buildChips(
+            '<md-chips ng-model="items" md-add-on-blur="true">' +
+            '</md-chips>'
+          );
+
+          var input = element.find('input');
+
+          expect(scope.items.length).toBe(3);
+
+          input.val('Remaining');
+          input.triggerHandler('change');
+
+          // Trigger a blur event, to check if the text was converted properly.
+          input.triggerHandler('blur');
+
+          expect(scope.items.length).toBe(4);
+        });
+
+        it('should not append a new chip if the limit has reached', function() {
+          var element = buildChips(
+            '<md-chips ng-model="items" md-add-on-blur="true" md-max-chips="3">' +
+            '</md-chips>'
+          );
+
+          var input = element.find('input');
+
+          expect(scope.items.length).toBe(3);
+
+          input.val('Remaining');
+          input.triggerHandler('change');
+
+          // Trigger a blur event, to check if the text was converted properly.
+          input.triggerHandler('blur');
+
+          expect(scope.items.length).toBe(3);
+        });
+
+        it('should not append a new chip when the chips model is invalid', function() {
+          var element = buildChips(
+            '<md-chips ng-model="items" md-add-on-blur="true">'
+          );
+
+          var input = element.find('input');
+          var ngModelCtrl = element.controller('ngModel');
+
+          expect(scope.items.length).toBe(3);
+
+          input.val('Remaining');
+
+          input.triggerHandler('change');
+          input.triggerHandler('blur');
+          $timeout.flush();
+
+          expect(scope.items.length).toBe(4);
+
+          input.val('Second');
+
+          ngModelCtrl.$setValidity('is-valid', false);
+
+          input.triggerHandler('change');
+          input.triggerHandler('blur');
+
+          expect(scope.items.length).toBe(4);
+        });
+
+        it('should not append a new chip when the custom input model is invalid', function() {
+          var element = buildChips(
+            '<md-chips ng-model="items" md-add-on-blur="true">' +
+              '<input ng-model="subModel" ng-maxlength="2">' +
+            '</md-chips>'
+          );
+
+          $timeout.flush();
+
+          var input = element.find('input');
+
+          expect(scope.items.length).toBe(3);
+
+          input.val('EN');
+
+          input.triggerHandler('change');
+          input.triggerHandler('blur');
+
+          // Flush the timeout after each blur, because custom inputs have listeners running
+          // in an Angular digest.
+          $timeout.flush();
+
+          expect(scope.items.length).toBe(4);
+
+          input.val('Another');
+
+          input.triggerHandler('change');
+          input.triggerHandler('blur');
+
+          // Flush the timeout after each blur, because custom inputs have listeners running
+          // in an Angular digest.
+          $timeout.flush();
+
+          expect(scope.items.length).toBe(4);
+        });
+
+      });
       
       describe('when removable', function() {
 
@@ -1033,6 +1139,43 @@ describe('<md-chips>', function() {
           expect(scope.items[4]).toBe('Acai Berry');
           expect(element.find('input').val()).toBe('');
         }));
+
+        it('should remove a chip on click and return focus to the input', function() {
+
+          var template =
+            '<md-chips ng-model="items" md-max-chips="1">' +
+              '<md-autocomplete ' +
+                  'md-selected-item="selectedItem" ' +
+                  'md-search-text="searchText" ' +
+                  'md-items="item in querySearch(searchText)" ' +
+                  'md-item-text="item">' +
+                '<span md-highlight-text="searchText">{{itemtype}}</span>' +
+              '</md-autocomplete>' +
+            '</md-chips>';
+
+          setupScopeForAutocomplete();
+
+          var element = buildChips(template);
+
+          document.body.appendChild(element[0]);
+
+          // Flush the autocomplete's init timeout.
+          $timeout.flush();
+
+          var input = element.find('input');
+          var removeButton = element[0].querySelector('.md-chip-remove');
+
+          expect(scope.items.length).toBe(3);
+
+          angular.element(removeButton).triggerHandler('click');
+
+          $timeout.flush();
+
+          expect(scope.items.length).toBe(2);
+          expect(document.activeElement).toBe(input[0]);
+
+          element.remove();
+        });
       });
 
       describe('user input templates', function() {

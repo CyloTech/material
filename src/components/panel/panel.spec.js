@@ -328,6 +328,31 @@ describe('$mdPanel', function() {
 
   describe('config options:', function() {
 
+    it('should not recreate a panel that is tracked by a user-defined id',
+        function() {
+          var config = {
+            id: 'custom-id'
+          };
+
+          var panel1 = $mdPanel.create(config);
+          panel1.open();
+          flushPanel();
+
+          var panels = document.querySelectorAll(PANEL_EL);
+          expect(panels.length).toEqual(1);
+
+          var panel2 = $mdPanel.create(config);
+          panel2.open();
+          flushPanel();
+
+          panels = document.querySelectorAll(PANEL_EL);
+          expect(panels.length).toEqual(1);
+
+          expect(panel1).toEqual(panel2);
+
+          panel1.close();
+        });
+
     it('should allow multiple panels', function() {
       var customClass = 'custom-class';
 
@@ -650,14 +675,10 @@ describe('$mdPanel', function() {
       spyOn($mdUtil, 'disableScrollAround').and.callThrough();
 
       openPanel(config);
-
       expect(PANEL_EL).toExist();
-      expect(SCROLL_MASK_CLASS).toExist();
-
+      expect(SCROLL_MASK_CLASS).not.toExist();
       closePanel();
 
-      var scrollMaskEl = $rootEl[0].querySelector(SCROLL_MASK_CLASS);
-      expect(scrollMaskEl).not.toExist();
       expect($mdUtil.disableScrollAround).toHaveBeenCalled();
     });
 

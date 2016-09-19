@@ -61,7 +61,7 @@ function mdCompilerService($q, $templateRequest, $injector, $compile, $controlle
     *   - `link` - `{function(scope)}`: A link function, which, when called, will compile
     *     the element and instantiate the provided controller (if given).
     *   - `locals` - `{object}`: The locals which will be passed into the controller once `link` is
-    *     called. If `bindToController` is true, they will be coppied to the ctrl instead
+    *     called. If `bindToController` is true, they will be copied to the ctrl instead
     *   - `bindToController` - `bool`: bind the locals to the controller, instead of passing them in.
     */
   this.compile = function(options) {
@@ -89,10 +89,7 @@ function mdCompilerService($q, $templateRequest, $injector, $compile, $controlle
     angular.extend(resolve, locals);
 
     if (templateUrl) {
-      resolve.$template = $templateRequest(templateUrl)
-        .then(function(response) {
-          return response;
-        });
+      resolve.$template = $templateRequest(templateUrl);
     } else {
       resolve.$template = $q.when(template);
     }
@@ -112,20 +109,23 @@ function mdCompilerService($q, $templateRequest, $injector, $compile, $controlle
         link: function link(scope) {
           locals.$scope = scope;
 
-          //Instantiate controller if it exists, because we have scope
+          // Instantiate controller if it exists, because we have scope
           if (controller) {
-            var invokeCtrl = $controller(controller, locals, true);
+
+            var ctrlLocals = angular.extend(locals, {
+              $element: element
+            });
+
+            var invokeCtrl = $controller(controller, ctrlLocals, true, controllerAs);
+
             if (bindToController) {
               angular.extend(invokeCtrl.instance, locals);
             }
+
             var ctrl = invokeCtrl();
             //See angular-route source for this logic
             element.data('$ngControllerController', ctrl);
             element.children().data('$ngControllerController', ctrl);
-
-            if (controllerAs) {
-              scope[controllerAs] = ctrl;
-            }
 
             // Publish reference to this controller
             compiledData.controller = ctrl;
